@@ -6,10 +6,8 @@ use Closure;
 use Evenement\EventEmitterInterface;
 use Evenement\EventEmitterTrait;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Str;
 use OpenAI;
 use OpenAI\Client;
-use OpenAI\Responses\Chat\CreateResponseChoice;
 
 class Assistant implements EventEmitterInterface
 {

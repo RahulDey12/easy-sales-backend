@@ -3,6 +3,7 @@
 namespace App\Call;
 
 use App\Call\Transcriptions\AssemblyAIRealTime;
+use App\Models\Call;
 use Closure;
 use Illuminate\Support\Arr;
 use Ratchet\ConnectionInterface;
@@ -21,7 +22,64 @@ class CallServer implements MessageComponentInterface
 
     protected string $streamSid;
 
+    protected Call $call;
+
     public function onOpen(ConnectionInterface $conn)
+    {
+    }
+
+    public function onClose(ConnectionInterface $conn): void
+    {
+        if(isset($this->transcriber)) {
+            $this->transcriber->close();
+        }
+    }
+
+    public function onError(ConnectionInterface $conn, \Exception $e)
+    {
+        $conn->close();
+    }
+
+    public function onMessage(ConnectionInterface $conn, MessageInterface $msg)
+    {
+        $response = json_decode($msg->getPayload(), true);
+
+        if($response['event'] === 'start') {
+            $this->streamSid = Arr::get($response, 'start.streamSid');
+//            $this->playRingtone($conn);
+
+            $call = Call::where('twilio_sid', Arr::get($response, 'start.callSid'))->first();
+
+            if(is_null($call)) {
+                $conn->close();
+                return;
+            }
+            $this->call = $call;
+
+            $this->startSession($conn);
+        }
+
+        if($response['event'] !== 'media') {
+            return;
+        }
+
+        $this->voiceEmitter->send($response['media']['payload']);
+    }
+
+    protected function playRingtone(ConnectionInterface $conn): void
+    {
+        $ringtoneContents = file_get_contents(storage_path('/app/call/ring.wav'));
+
+        $conn->send(json_encode([
+            'event' => 'media',
+            'streamSid' => $this->streamSid,
+            'media' => [
+                'payload' => base64_encode($ringtoneContents),
+            ],
+        ]));
+    }
+
+    protected function startSession(ConnectionInterface $conn)
     {
         $this->voiceEmitter = new VoiceEmitter();
         $this->assistant = new Assistant();
@@ -29,7 +87,7 @@ class CallServer implements MessageComponentInterface
         $this->transcriber = new AssemblyAIRealTime($this->voiceEmitter);
         $this->transcriber->connect();
 
-        $this->tts = new TextToSpeech('XrExE9yKIg1WjnnlVkGX');
+        $this->tts = new TextToSpeech($this->call->caller->xi_voice_id);
         $this->tts->connect();
 
         $this->transcriber->on('transcribe', function (string $transcription) {
@@ -53,6 +111,11 @@ class CallServer implements MessageComponentInterface
 
         $this->tts->on('audio', function (string $audio) use ($conn) {
             $conn->send(json_encode([
+                'event' => 'clear',
+                'streamSid' => $this->streamSid,
+            ]));
+
+            $conn->send(json_encode([
                 'event' => 'media',
                 'streamSid' => $this->streamSid,
                 'media' => [
@@ -66,30 +129,5 @@ class CallServer implements MessageComponentInterface
         $this->assistant->on('hang_up', function () {
             dump("Hang Up");
         });
-    }
-
-    public function onClose(ConnectionInterface $conn): void
-    {
-        $this->transcriber->close();
-    }
-
-    public function onError(ConnectionInterface $conn, \Exception $e)
-    {
-        // TODO: Implement onError() method.
-    }
-
-    public function onMessage(ConnectionInterface $conn, MessageInterface $msg)
-    {
-        $response = json_decode($msg->getPayload(), true);
-
-        if($response['event'] === 'start') {
-            $this->streamSid = Arr::get($response, 'start.streamSid');
-        }
-
-        if($response['event'] !== 'media') {
-            return;
-        }
-
-        $this->voiceEmitter->send($response['media']['payload']);
     }
 }
