@@ -77,6 +77,7 @@ class Assistant implements EventEmitterInterface
 
         $stream = $this->client->chat()->createStreamed([
             'model' => self::MODEL,
+            'temperature' => 0.5,
             'messages' => $this->messages,
         ]);
 
