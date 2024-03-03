@@ -14,7 +14,7 @@ class CallController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        $calls = Auth::user()->calls()->paginate(20);
+        $calls = Auth::user()->calls()->latest()->paginate(20);
 
         return CallResource::collection($calls);
     }
@@ -34,9 +34,12 @@ class CallController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Call $call)
+    public function show(Call $call): CallResource
     {
-        //
+        $call->load('meta');
+        $call->load('caller');
+
+        return new CallResource($call);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Call;
 
+use App\Models\Call;
 use Closure;
 use Evenement\EventEmitterInterface;
 use Evenement\EventEmitterTrait;
@@ -21,14 +22,17 @@ class Assistant implements EventEmitterInterface
 
     protected string $tmpMessage = '';
 
-    public function __construct()
+    public function __construct(protected Call $call)
     {
         $this->client = OpenAI::factory()
             ->withApiKey(config('services.groq.key'))
             ->withBaseUri('https://api.groq.com/openai/v1/')
             ->make();
 
-        $this->addMessage('system', Blade::render('ai_templates.assistant-system-message'));
+        $this->addMessage('system', Blade::render('ai_templates.assistant-system-message', [
+            'call' => $this->call,
+            'caller' => $this->call->caller,
+        ]));
     }
 
     public function sendUserMessage(string $message)

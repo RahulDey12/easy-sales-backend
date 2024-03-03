@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CallStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,6 +17,7 @@ return new class extends Migration
             $table->foreignId('campaign_id')->nullable()->constrained();
             $table->foreignId('caller_id')->constrained();
             $table->foreignId('user_id')->constrained();
+            $table->string('status')->default(CallStatus::QUEUED);
             $table->string('title');
             $table->string('first_name');
             $table->string('last_name')->nullable();

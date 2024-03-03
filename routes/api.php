@@ -21,6 +21,9 @@ Route::group(['middleware' => ['auth:sanctum'], 'prefix' => 'me'], function () {
 Route::get('/callers', IndexCallersController::class);
 
 Route::group(['middleware' => ['auth:sanctum'], 'prefix' => 'call'], function () {
+    Route::get('/', [CallController::class, 'index']);
     Route::post('/', [CallController::class, 'store']);
-    Route::get('/{call}', []);
+    Route::get('/{call}', [CallController::class, 'show']);
 });
+
+require __DIR__.'/auth.php';

@@ -3,6 +3,7 @@
 namespace App\Call;
 
 use App\Call\Transcriptions\AssemblyAIRealTime;
+use App\Enums\CallStatus;
 use App\Models\Call;
 use App\Models\CallMeta;
 use Closure;
@@ -35,6 +36,11 @@ class CallServer implements MessageComponentInterface
     {
         if(isset($this->transcriber)) {
             $this->transcriber->close();
+        }
+
+        if(isset($this->call)) {
+            $this->call->status = CallStatus::FINISHED;
+            $this->call->save();
         }
 
         if(isset($this->callMeta)) {
@@ -73,6 +79,9 @@ class CallServer implements MessageComponentInterface
 
             $this->startSession($conn);
 
+            $this->call->status = CallStatus::CALLING;
+            $this->call->save();
+
             $this->callMeta = CallMeta::updateOrCreate(
                 [
                     'call_id' => $call->id,
@@ -106,7 +115,7 @@ class CallServer implements MessageComponentInterface
     protected function startSession(ConnectionInterface $conn)
     {
         $this->voiceEmitter = new VoiceEmitter();
-        $this->assistant = new Assistant();
+        $this->assistant = new Assistant($this->call);
 
         $this->transcriber = new AssemblyAIRealTime($this->voiceEmitter);
         $this->transcriber->connect();

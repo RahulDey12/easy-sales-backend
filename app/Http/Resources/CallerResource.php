@@ -14,6 +14,13 @@ class CallerResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'attributes' => [
+                'name' => $this->name,
+                'gender' => $this->gender,
+                'xi_voice_id' => $this->xi_voice_id,
+            ],
+        ];
     }
 }
