@@ -6,6 +6,7 @@ use App\Enums\CustomerTitle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Call extends Model
 {
@@ -28,5 +29,10 @@ class Call extends Model
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
+    }
+
+    public function meta(): HasOne
+    {
+        return $this->hasOne(CallMeta::class);
     }
 }

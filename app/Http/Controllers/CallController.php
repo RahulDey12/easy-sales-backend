@@ -14,7 +14,7 @@ class CallController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        $calls = Auth::user()->calls;
+        $calls = Auth::user()->calls()->paginate(20);
 
         return CallResource::collection($calls);
     }
@@ -27,6 +27,8 @@ class CallController extends Controller
             'caller_id' => $request->caller_id ?? Caller::getRandom()->id,
             'user_id' => Auth::user()->id,
         ]);
+
+        return new CallResource($call);
     }
 
     /**

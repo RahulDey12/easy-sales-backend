@@ -38,6 +38,15 @@ class Assistant implements EventEmitterInterface
         $this->emit('speak', [$messageIterator]);
     }
 
+    public function dumpTranscription(): string
+    {
+        $messages = collect($this->messages);
+
+        return $messages->reject(fn ($message) => $message['role'] === 'system')->map(function ($message) {
+            return "{$message['role']}: {$message['content']}";
+        })->join(PHP_EOL);
+    }
+
     protected function addMessage(string $role, string $content): static
     {
         $this->messages[] = compact('role', 'content');

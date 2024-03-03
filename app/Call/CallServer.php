@@ -4,6 +4,7 @@ namespace App\Call;
 
 use App\Call\Transcriptions\AssemblyAIRealTime;
 use App\Models\Call;
+use App\Models\CallMeta;
 use Closure;
 use Illuminate\Support\Arr;
 use Ratchet\ConnectionInterface;
@@ -24,6 +25,8 @@ class CallServer implements MessageComponentInterface
 
     protected Call $call;
 
+    protected CallMeta $callMeta;
+
     public function onOpen(ConnectionInterface $conn)
     {
     }
@@ -32,6 +35,18 @@ class CallServer implements MessageComponentInterface
     {
         if(isset($this->transcriber)) {
             $this->transcriber->close();
+        }
+
+        if(isset($this->callMeta)) {
+            $this->callMeta->update([
+                'ends_at' => now(),
+            ]);
+        }
+
+        if(isset($this->assistant) && isset($this->callMeta)) {
+            $this->callMeta->update([
+                'transcription' => $this->assistant->dumpTranscription(),
+            ]);
         }
     }
 
@@ -57,6 +72,15 @@ class CallServer implements MessageComponentInterface
             $this->call = $call;
 
             $this->startSession($conn);
+
+            $this->callMeta = CallMeta::updateOrCreate(
+                [
+                    'call_id' => $call->id,
+                ],
+                [
+                    'starts_at' => now(),
+                ],
+            );
         }
 
         if($response['event'] !== 'media') {
@@ -110,10 +134,10 @@ class CallServer implements MessageComponentInterface
         });
 
         $this->tts->on('audio', function (string $audio) use ($conn) {
-            $conn->send(json_encode([
-                'event' => 'clear',
-                'streamSid' => $this->streamSid,
-            ]));
+//            $conn->send(json_encode([
+//                'event' => 'clear',
+//                'streamSid' => $this->streamSid,
+//            ]));
 
             $conn->send(json_encode([
                 'event' => 'media',
